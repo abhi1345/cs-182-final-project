@@ -59,8 +59,8 @@ def main():
 
     input = Input(shape=(64,64,3),name = 'image_input')
 
-    vgg19_model = VGG19(weights='imagenet', include_top=False)
-    out_vgg = vgg19_model(input)
+    vgg16_model = VGG16(weights='imagenet', include_top=False)
+    out_vgg = vgg16_model(input)
 
     x = Flatten(name='flatten')(out_vgg)
     x = Dense(4096, activation='relu', name='fc1')(x)
@@ -75,11 +75,11 @@ def main():
                   metrics=['accuracy'])
 
     # # Train the simple model
-    epochs = 2
+    epochs = 20
     history = model.fit_generator(generator=train_data_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=epochs, validation_data=val_data_gen)
 
     # Save the final output
-    model_name = 'vgg19_2'
+    model_name = 'vgg16_20'
 
     log(history.history, model_name, epochs)
     model.save('./models/' + model_name + '.h5')
