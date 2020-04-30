@@ -14,20 +14,20 @@ from PIL import Image
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
 from keras.preprocessing import image
-from keras.applications.vgg16 import preprocess_input
-from keras.utils.vis_utils import plot_model
 from keras.models import Model, Sequential
 from keras.layers import Input, Flatten, Dense, Conv2D, MaxPool2D
-
+from log import log
 
 def main():
 
     # Create a tensorflow dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200/train/')
     val_data_dir = pathlib.Path('./data/tiny-imagenet-200/validation/')
+
     image_count = len(list(data_dir.glob('**/*.JPEG')))
     CLASS_NAMES = np.array([item.name for item in data_dir.glob('*')])
     val_names = np.array([item.name for item in val_data_dir.glob('*')])
+
     print('Discovered {} images'.format(image_count))
 
     # Simple image preprocessing:  Scale images to [0, 1] float32
@@ -50,17 +50,17 @@ def main():
                                                          target_size=(IMG_HEIGHT, IMG_WIDTH),
                                                          classes=list(val_names))
 
-    # Create a simple model
-    # model = tf.keras.Sequential([
-    #     tf.keras.layers.Reshape((64*64*3,), input_shape=(64, 64, 3)),
-    #     tf.keras.layers.Dense(128, activation='relu'),
-    #     tf.keras.layers.Dense(len(CLASS_NAMES), activation='softmax'),
-    # ])
+    # # Create a simple model
+    # # model = tf.keras.Sequential([
+    # #     tf.keras.layers.Reshape((64*64*3,), input_shape=(64, 64, 3)),
+    # #     tf.keras.layers.Dense(128, activation='relu'),
+    # #     tf.keras.layers.Dense(len(CLASS_NAMES), activation='softmax'),
+    # # ])
 
     input = Input(shape=(64,64,3),name = 'image_input')
 
-    vgg16_model = VGG16(weights='imagenet', include_top=False)
-    out_vgg = vgg16_model(input)
+    vgg19_model = VGG19(weights='imagenet', include_top=False)
+    out_vgg = vgg19_model(input)
 
     x = Flatten(name='flatten')(out_vgg)
     x = Dense(4096, activation='relu', name='fc1')(x)
@@ -74,14 +74,15 @@ def main():
                   loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
 
-    # Train the simple model
-    history = model.fit_generator(generator=train_data_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=1, validation_data=val_data_gen)
-    # 28.66% accuracy with epoch = 10
-    print(history.history.keys())
-    print(history.history.values())
+    # # Train the simple model
+    epochs = 2
+    history = model.fit_generator(generator=train_data_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=epochs, validation_data=val_data_gen)
 
     # Save the final output
-    model.save('model.h5')
+    model_name = 'vgg19_2'
+
+    log(history.history, model_name, epochs)
+    model.save('./models/' + model_name + '.h5')
 
 if __name__ == '__main__':
     main()
