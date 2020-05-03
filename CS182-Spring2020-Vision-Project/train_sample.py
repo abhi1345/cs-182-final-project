@@ -13,10 +13,15 @@ import keras
 from PIL import Image
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
+from keras.applications.inception_v3 import InceptionV3
+from keras.applications.mobilenet import MobileNet
+from keras.applications.densenet import DenseNet121, DenseNet169, DenseNet201
+
 from keras.preprocessing import image
 from keras.models import Model, Sequential
 from keras.layers import Input, Flatten, Dense, Conv2D, MaxPool2D
-from log import log
+from utils.log import log, TimeHistory, cparams
+from fool_image import fool_image
 
 def main():
 
@@ -32,17 +37,32 @@ def main():
 
     # Simple image preprocessing:  Scale images to [0, 1] float32
     image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
+    train_gen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255, zoom_range=0.2, horizontal_flip=True, rotation_range=30)
+    train_gen2 = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1. / 255)
+
 
     # Create the training data generator
     BATCH_SIZE = 32
     IMG_HEIGHT = 64
     IMG_WIDTH = 64
     STEPS_PER_EPOCH = np.ceil(image_count / BATCH_SIZE)
-    train_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
+    train_data_gen = train_gen.flow_from_directory(directory=str(data_dir),
                                                          batch_size=BATCH_SIZE,
                                                          shuffle=True,
                                                          target_size=(IMG_HEIGHT, IMG_WIDTH),
-                                                         classes=list(CLASS_NAMES))
+                                                         classes=list(CLASS_NAMES),
+                                                         seed=7)
+
+    train_data_gen2 = train_gen2.flow_from_directory(directory=str(data_dir),
+                                                         batch_size=BATCH_SIZE,
+                                                         shuffle=True,
+                                                         target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                         classes=list(CLASS_NAMES),
+                                                         seed = 7)
+
+    fool_image(train_data_gen)
+    # fool_image(train_data_gen2)
+
 
     val_data_gen = image_generator.flow_from_directory(directory=str(val_data_dir),
                                                          batch_size=BATCH_SIZE,
@@ -50,17 +70,17 @@ def main():
                                                          target_size=(IMG_HEIGHT, IMG_WIDTH),
                                                          classes=list(val_names))
 
-    # # Create a simple model
-    # # model = tf.keras.Sequential([
-    # #     tf.keras.layers.Reshape((64*64*3,), input_shape=(64, 64, 3)),
-    # #     tf.keras.layers.Dense(128, activation='relu'),
-    # #     tf.keras.layers.Dense(len(CLASS_NAMES), activation='softmax'),
-    # # ])
+    # Create a simple model
+    # model = tf.keras.Sequential([
+    #     tf.keras.layers.Reshape((64*64*3,), input_shape=(64, 64, 3)),
+    #     tf.keras.layers.Dense(128, activation='relu'),
+    #     tf.keras.layers.Dense(len(CLASS_NAMES), activation='softmax'),
+    # ])
 
     input = Input(shape=(64,64,3),name = 'image_input')
 
-    vgg16_model = VGG16(weights='imagenet', include_top=False)
-    out_vgg = vgg16_model(input)
+    mobile_model = MobileNet(weights='imagenet', include_top=False)
+    out_vgg = mobile_model(input)
 
     x = Flatten(name='flatten')(out_vgg)
     x = Dense(4096, activation='relu', name='fc1')(x)
@@ -70,19 +90,28 @@ def main():
     model = Model(input=input, output=x)
     model.summary()
 
-    model.compile(optimizer=keras.optimizers.Adam(lr=1e-6),
+    lr = 1e-6
+    epochs = 1
+    model_name = 'mobile_test_3'
+
+    model.compile(optimizer=keras.optimizers.Adam(lr=lr),
                   loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
 
-    # # Train the simple model
-    epochs = 20
-    history = model.fit_generator(generator=train_data_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=epochs, validation_data=val_data_gen)
+    # Train the simple model
+    time_callback = TimeHistory()
+    # cparams(model_name, lr, epochs, 3, 30)
+    history = model.fit_generator(generator=train_data_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=epochs, validation_data=val_data_gen, callbacks=[time_callback])
 
+    print(history.history['loss'])
     # Save the final output
-    model_name = 'vgg16_20'
-
-    log(history.history, model_name, epochs)
     model.save('./models/' + model_name + '.h5')
+
+
+    # For logging
+    logged_params = {'name': model_name, 'lr': lr, 'epochs': epochs, 'time' : round(sum(time_callback.times))}
+    log(history.history, logged_params)
+
 
 if __name__ == '__main__':
     main()
