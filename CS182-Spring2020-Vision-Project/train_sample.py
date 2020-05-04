@@ -21,10 +21,9 @@ from keras.preprocessing import image
 from keras.models import Model, Sequential
 from keras.layers import Input, Flatten, Dense, Conv2D, MaxPool2D
 from utils.log import log, TimeHistory, cparams
-from fool_image import fool_image
+# from fool_image import fool_image
 
 def main():
-
     # Create a tensorflow dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200/train/')
     val_data_dir = pathlib.Path('./data/tiny-imagenet-200/validation/')
@@ -60,7 +59,7 @@ def main():
                                                          classes=list(CLASS_NAMES),
                                                          seed = 7)
 
-    fool_image(train_data_gen)
+    # fool_image(train_data_gen)
     # fool_image(train_data_gen2)
 
 
@@ -79,8 +78,16 @@ def main():
 
     input = Input(shape=(64,64,3),name = 'image_input')
 
-    mobile_model = MobileNet(weights='imagenet', include_top=False)
+    mobile_model = DenseNet169(weights='imagenet', include_top=False)
+    # update weights
     out_vgg = mobile_model(input)
+
+    # for layer in mobile_net.layers[:-5]:
+    #     layer.trainable = False
+    # for layer in mobile_net.layers:
+    #     print(layer, layer.trainable)
+
+
 
     x = Flatten(name='flatten')(out_vgg)
     x = Dense(4096, activation='relu', name='fc1')(x)
@@ -91,19 +98,18 @@ def main():
     model.summary()
 
     lr = 1e-6
-    epochs = 1
-    model_name = 'mobile_test_3'
+    epochs = 5
+    model_name = 'densnet169_5'
 
+    # tf.keras.optimizers.adam(...)
     model.compile(optimizer=keras.optimizers.Adam(lr=lr),
                   loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
+                  metrics=['accuracy', 'top_k_categorical_accuracy'])
 
     # Train the simple model
     time_callback = TimeHistory()
-    # cparams(model_name, lr, epochs, 3, 30)
     history = model.fit_generator(generator=train_data_gen, steps_per_epoch=STEPS_PER_EPOCH, epochs=epochs, validation_data=val_data_gen, callbacks=[time_callback])
 
-    print(history.history['loss'])
     # Save the final output
     model.save('./models/' + model_name + '.h5')
 
