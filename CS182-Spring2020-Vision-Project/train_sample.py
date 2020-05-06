@@ -25,7 +25,7 @@ from utils.log import log, TimeHistory, cparams
 
 def main():
     # Create a tensorflow dataset
-    data_dir = pathlib.Path('./data/tiny-imagenet-200/train/')
+    data_dir = pathlib.Path('./data/tiny-imagenet-200/new_train/')
     val_data_dir = pathlib.Path('./data/tiny-imagenet-200/validation/')
 
     image_count = len(list(data_dir.glob('**/*.JPEG')))
@@ -78,9 +78,9 @@ def main():
 
     input = Input(shape=(64,64,3),name = 'image_input')
 
-    mobile_model = DenseNet169(weights='imagenet', include_top=False)
+    image_model = DenseNet169(weights='imagenet', include_top=False)
     # update weights
-    out_vgg = mobile_model(input)
+    out_model = image_model(input)
 
     # for layer in mobile_net.layers[:-5]:
     #     layer.trainable = False
@@ -89,7 +89,7 @@ def main():
 
 
 
-    x = Flatten(name='flatten')(out_vgg)
+    x = Flatten(name='flatten')(out_model)
     x = Dense(4096, activation='relu', name='fc1')(x)
     x = Dense(4096, activation='relu', name='fc2')(x)
     x = Dense(200, activation='sigmoid', name='predictions')(x)
@@ -98,8 +98,8 @@ def main():
     model.summary()
 
     lr = 1e-6
-    epochs = 5
-    model_name = 'densnet169_5'
+    epochs = 10
+    model_name = 'dense169_5f'
 
     # tf.keras.optimizers.adam(...)
     model.compile(optimizer=keras.optimizers.Adam(lr=lr),

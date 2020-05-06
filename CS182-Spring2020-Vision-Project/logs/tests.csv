@@ -1,3 +1,6 @@
 	Model Name	lr	Epochs	Total Time	Val_Acc	Top 5
-0	densnet169_5	1e-06	5	0:51:11  	40.71	69.49
-1	mobilenet_10	1e-06	10	0:25:24  	31.25	61.55
+1	densnet169_25	1e-06	25	4:08:33  	51.77	79.88
+2	densnet169_5	1e-06	5	0:51:11  	40.71	69.49
+0	mobile_10f 	1e-06	10	0:55:08  	31.96	63.39
+3	mobilenet_10	1e-06	10	0:25:24  	31.25	61.55
+4	test_5     	1e-06	1	0:02:38  	4.4	14.9
