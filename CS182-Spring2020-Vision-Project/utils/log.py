@@ -23,8 +23,7 @@ class TimeHistory(keras.callbacks.Callback):
 
 
 def cparams(csv_path, name, lr, epochs, time, val_acc, top_k_acc):
-
-    df = pd.DataFrame(np.array([[name, lr, epochs, time, val_acc, top_k_acc]]), columns=['Model Name', 'lr','Epochs', 'Total Time', 'Val_Acc', 'Top 5'])
+    df = pd.DataFrame(np.array([[name.ljust(11, ' '), lr, epochs, time, val_acc, top_k_acc]]), columns=['Model Name', 'lr','Epochs', 'Total Time', 'Val_Acc', 'Top 5'])
     if not os.path.isfile(csv_path):
         df.to_csv(csv_path, sep='\t')
 
